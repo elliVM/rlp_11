@@ -90,9 +90,21 @@ public final class TLSConfigurationTest {
                 .assertThrows(ConfigurationException.class, tlsConfiguration::keyStorePassword);
         final ConfigurationException protocolException = Assertions
                 .assertThrows(ConfigurationException.class, tlsConfiguration::protocol);
-        Assertions.assertEquals("Invalid value for <tls.keystore.path> received", pathException.getMessage());
-        Assertions.assertEquals("Invalid value for <tls.keystore.password> received", passwordException.getMessage());
-        Assertions.assertEquals("Invalid value for <tls.protocol> received", protocolException.getMessage());
+        Assertions
+                .assertEquals(
+                        "TLS Configuration did not contain a value for key <tls.keystore.path>",
+                        pathException.getMessage()
+                );
+        Assertions
+                .assertEquals(
+                        "TLS Configuration did not contain a value for key <tls.keystore.password>",
+                        passwordException.getMessage()
+                );
+        Assertions
+                .assertEquals(
+                        "TLS Configuration did not contain a value for key <tls.protocol>",
+                        protocolException.getMessage()
+                );
     }
 
     @Test

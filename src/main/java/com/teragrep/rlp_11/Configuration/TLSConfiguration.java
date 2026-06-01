@@ -76,13 +76,12 @@ public final class TLSConfiguration {
         return getOrThrow("tls.protocol");
     }
 
-    private String getOrThrow(String key) {
-        final String value = config.get(key);
-        if (value == null) {
-            LOGGER.error("Configuration failure: <{}> is null", key);
-            throw new ConfigurationException("Invalid value for <" + key + "> received");
+    private String getOrThrow(final String key) {
+        if (!config.containsKey(key)) {
+            LOGGER.error("Configuration failure: did not contain value for key <{}> ", key);
+            throw new ConfigurationException("TLS Configuration did not contain a value for key <" + key + ">");
         }
-        return value;
+        return config.get(key);
     }
 
     @Override
