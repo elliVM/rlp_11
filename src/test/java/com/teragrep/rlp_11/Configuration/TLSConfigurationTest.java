@@ -45,6 +45,7 @@
  */
 package com.teragrep.rlp_11.Configuration;
 
+import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -92,5 +93,10 @@ public final class TLSConfigurationTest {
         Assertions.assertEquals("Invalid value for <tls.keystore.path> received", pathException.getMessage());
         Assertions.assertEquals("Invalid value for <tls.keystore.password> received", passwordException.getMessage());
         Assertions.assertEquals("Invalid value for <tls.protocol> received", protocolException.getMessage());
+    }
+
+    @Test
+    public void testContract() {
+        EqualsVerifier.forClass(TLSConfiguration.class).verify();
     }
 }

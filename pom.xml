@@ -147,6 +147,13 @@
       <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
+    <!-- equals verifier for testing -->
+    <dependency>
+      <groupId>nl.jqno.equalsverifier</groupId>
+      <artifactId>equalsverifier</artifactId>
+      <version>4.5</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <directory>${project.basedir}/target</directory>

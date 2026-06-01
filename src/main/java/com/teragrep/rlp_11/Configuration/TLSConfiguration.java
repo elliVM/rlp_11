@@ -49,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.Objects;
 
 public final class TLSConfiguration {
 
@@ -82,5 +83,26 @@ public final class TLSConfiguration {
             throw new ConfigurationException("Invalid value for <" + key + "> received");
         }
         return value;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        final boolean rv;
+        if (o == null) {
+            rv = false;
+        }
+        else if (getClass() != o.getClass()) {
+            rv = false;
+        }
+        else {
+            final TLSConfiguration that = (TLSConfiguration) o;
+            rv = Objects.equals(config, that.config);
+        }
+        return rv;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(config);
     }
 }
