@@ -78,7 +78,6 @@ public class RelpProbe {
     private final CountDownLatch latch = new CountDownLatch(1);
     private boolean connected = false;
     private final Counter records;
-    // TODO resend count could be made available from rlp_01
     private final Counter resends;
     private final Counter connects;
     private final Counter disconnects;
@@ -141,7 +140,11 @@ public class RelpProbe {
             relpBatch.insert(recordFactory.createRecord());
 
             try (final Timer.Context context = sendLatency.time()) {
-                relpConnection.ensureSent(relpBatch);
+                long sendTries = relpConnection.ensureSent(relpBatch);
+                // check if ensure sent had to do a resend and increment resends accordingly
+                if (sendTries > 1) {
+                    resends.inc(sendTries - 1);
+                }
                 records.inc();
             }
 
@@ -168,10 +171,10 @@ public class RelpProbe {
             try (final Timer.Context context = connectLatency.time()) {
                 LOGGER.debug("Connecting to <[{}:{}]>", targetConfiguration.hostname(), targetConfiguration.port());
                 relpConnection = connectionFactory.get();
-                relpConnection.connect();
+                long connectionTries = relpConnection.connect();
                 connected = true;
-                LOGGER.debug("Connected.");
-                connects.inc();
+                LOGGER.debug("Connected after <{}> tries", connectionTries);
+                connects.inc(connectionTries);
             }
             catch (IOException e) {
                 LOGGER

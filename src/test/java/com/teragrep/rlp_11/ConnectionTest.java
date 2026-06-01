@@ -221,7 +221,7 @@ public class ConnectionTest {
                 tlsConfiguration.protocol()
         );
         final RelpConnectionFactory relpConnectionFactory = new RelpConnectionFactory(relpConfig, sslContextSupplier);
-        RelpProbe relpProbe = new RelpProbe(
+        final RelpProbe relpProbe = new RelpProbe(
                 relpConnectionFactory,
                 targetConfiguration,
                 probeConfiguration,
@@ -229,15 +229,14 @@ public class ConnectionTest {
                 recordFactory,
                 new MetricRegistry()
         );
-        TimerTask task = new TimerTask() {
+        final TimerTask task = new TimerTask() {
 
             public void run() {
                 relpProbe.stop();
             }
         };
-        Timer timer = new Timer("Timer");
+        final Timer timer = new Timer("Timer");
         timer.schedule(task, 5_000L);
-
         relpProbe.start();
     }
 }
