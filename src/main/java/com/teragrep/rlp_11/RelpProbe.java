@@ -59,6 +59,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.concurrent.CountDownLatch;
 
 import java.util.concurrent.TimeUnit;
@@ -76,7 +77,6 @@ public class RelpProbe {
     private final AtomicBoolean stayRunning = new AtomicBoolean(true);
     private IManagedRelpConnection relpConnection;
     private final CountDownLatch latch = new CountDownLatch(1);
-    private boolean connected = false;
     private final Counter records;
     private final Counter resends;
     private final Counter connects;
@@ -141,6 +141,7 @@ public class RelpProbe {
 
             try (final Timer.Context context = sendLatency.time()) {
                 long sendTries = relpConnection.ensureSent(relpBatch);
+                LOGGER.debug("Send batch in <{}> tries", sendTries);
                 // check if ensure sent had to do a resend and increment resends accordingly
                 if (sendTries > 1) {
                     resends.inc(sendTries - 1);
@@ -161,38 +162,24 @@ public class RelpProbe {
             disconnects.inc();
         }
         catch (final IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException("RELP connection failed to send batch: " + e.getMessage(), e);
         }
         latch.countDown();
     }
 
     private void connect() {
-        while (!connected && stayRunning.get()) {
-            try (final Timer.Context context = connectLatency.time()) {
-                LOGGER.debug("Connecting to <[{}:{}]>", targetConfiguration.hostname(), targetConfiguration.port());
-                relpConnection = connectionFactory.get();
-                long connectionTries = relpConnection.connect();
-                connected = true;
-                LOGGER.debug("Connected after <{}> tries", connectionTries);
-                connects.inc(connectionTries);
+        try (final Timer.Context context = connectLatency.time()) {
+            LOGGER.debug("Connecting to <[{}:{}]>", targetConfiguration.hostname(), targetConfiguration.port());
+            relpConnection = connectionFactory.get();
+            long attempts = relpConnection.connect(); // loops until connects
+            LOGGER.debug("Connected after <{}> attempts", attempts);
+            if (attempts > 1) { // increment if connection had retries
+                retriedConnects.inc(attempts - 1);
             }
-            catch (IOException e) {
-                LOGGER
-                        .warn(
-                                "Failed to connect to <[{}:{}]>: <{}>", targetConfiguration.hostname(),
-                                targetConfiguration.port(), e.getMessage()
-                        );
-            }
-            if (!connected) {
-                try {
-                    LOGGER.debug("Sleeping for <[{}]>ms before reconnecting", targetConfiguration.reconnectInterval());
-                    TimeUnit.MILLISECONDS.sleep(targetConfiguration.reconnectInterval());
-                    retriedConnects.inc();
-                }
-                catch (InterruptedException e) {
-                    LOGGER.warn("Sleep was interrupted: <{}>", e.getMessage());
-                }
-            }
+            connects.inc();
+        }
+        catch (final IOException e) {
+            throw new UncheckedIOException("RELP connection failed to connect: " + e.getMessage(), e);
         }
     }
 

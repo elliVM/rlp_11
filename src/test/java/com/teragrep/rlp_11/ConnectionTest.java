@@ -80,6 +80,7 @@ import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -205,6 +206,7 @@ public class ConnectionTest {
         final TargetConfiguration targetConfiguration = new TargetConfiguration(map);
         final MetricsConfiguration metricsConfiguration = new MetricsConfiguration(map);
         final TLSConfiguration tlsConfiguration = new TLSConfiguration(map);
+        final MetricRegistry metricRegistry = new MetricRegistry();
 
         final RelpConfig relpConfig = new RelpConfig(
                 targetConfiguration.hostname(),
@@ -227,7 +229,7 @@ public class ConnectionTest {
                 probeConfiguration,
                 metricsConfiguration,
                 recordFactory,
-                new MetricRegistry()
+                metricRegistry
         );
         final TimerTask task = new TimerTask() {
 
@@ -237,6 +239,199 @@ public class ConnectionTest {
         };
         final Timer timer = new Timer("Timer");
         timer.schedule(task, 5_000L);
-        relpProbe.start();
+        Assertions.assertDoesNotThrow(relpProbe::start, "starting probe should not throw exceptions");
+        final long connectCount = metricRegistry.counter(MetricRegistry.name(RelpProbe.class, "connects")).getCount();
+        final long disconnectCount = metricRegistry
+                .counter(MetricRegistry.name(RelpProbe.class, "disconnects"))
+                .getCount();
+        final long retriedConnects = metricRegistry
+                .counter(MetricRegistry.name(RelpProbe.class, "retriedConnects"))
+                .getCount();
+        final long resends = metricRegistry.counter(MetricRegistry.name(RelpProbe.class, "resends")).getCount();
+        final long records = metricRegistry.counter(MetricRegistry.name(RelpProbe.class, "records")).getCount();
+        Assertions.assertEquals(1, connectCount, "probe should connect once");
+        Assertions.assertEquals(1, disconnectCount, "probe should disconnect once");
+        Assertions.assertEquals(0, retriedConnects, "probe should not have to retry to connect");
+        Assertions.assertEquals(0, resends, "probe should not have to resend");
+        // exact count depends on scheduling variations, assert that there are records sent
+        Assertions.assertTrue(records > 0, "probe should have at least one record sent during timer");
+    }
+
+    /**
+     * Connection starts initially closed and then opened after some connect retries have run
+     */
+    @Test
+    public void connectToTSLServerRetryTest() {
+        // configuration
+        final Map<String, String> map = Assertions
+                .assertDoesNotThrow(() -> new PathConfiguration("src/test/resources/tls-connect.properties").asMap());
+        final ProbeConfiguration probeConfiguration = new ProbeConfiguration(map);
+        final RecordFactory recordFactory = new RecordFactory("localhost", "rlp_11", "rlp_11");
+        final TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        final MetricsConfiguration metricsConfiguration = new MetricsConfiguration(map);
+        final TLSConfiguration tlsConfiguration = new TLSConfiguration(map);
+        final MetricRegistry metricRegistry = new MetricRegistry();
+        // override TLS port
+        final RelpConfig relpConfig = new RelpConfig(
+                targetConfiguration.hostname(),
+                tlsServerPort,
+                targetConfiguration.reconnectInterval(),
+                5,
+                true,
+                Duration.ofSeconds(10),
+                true
+        );
+        // tls enabled factory
+        final SSLContextSupplier sslContextSupplier = new SSLContextSupplierKeystore(
+                tlsConfiguration.keyStorePath(),
+                tlsConfiguration.keyStorePassword(),
+                tlsConfiguration.protocol()
+        );
+        final RelpConnectionFactory relpConnectionFactory = new RelpConnectionFactory(relpConfig, sslContextSupplier);
+        final RelpProbe relpProbe = new RelpProbe(
+                relpConnectionFactory,
+                targetConfiguration,
+                probeConfiguration,
+                metricsConfiguration,
+                recordFactory,
+                metricRegistry
+        );
+        // close server for initial connection attempts
+        Assertions.assertDoesNotThrow(() -> tlsServer.close());
+
+        // allow OS to release port and tear down socket
+        Assertions.assertDoesNotThrow(() -> Thread.sleep(300));
+
+        // start probe task, tries to connect to closed server
+        final TimerTask stopTask = new TimerTask() {
+
+            public void run() {
+                relpProbe.stop();
+            }
+        };
+
+        // stop probe after fixed time
+        final Timer timer = new Timer("Timer");
+        timer.schedule(stopTask, 5000L);
+        Thread probeThread = new Thread(relpProbe::start);
+        probeThread.start();
+
+        // await for retry attempts
+        Assertions.assertDoesNotThrow(() -> Thread.sleep(2000));
+
+        // Restart TLS server while probe is retrying
+        Assertions.assertDoesNotThrow(() -> {
+            tlsServer = new ServerFactory(
+                    eventLoop,
+                    threadPoolExecutor,
+                    new TLSFactory(sslContextSupplier.get(), ctx -> {
+                        SSLEngine engine = ctx.createSSLEngine();
+                        engine.setUseClientMode(false);
+                        return engine;
+                    }),
+                    new FrameDelegationClockFactory(() -> new DefaultFrameDelegate(fc -> {
+                    }))
+            ).create(tlsServerPort);
+        });
+
+        // allow probe to reconnect successfully after server start
+        Assertions.assertDoesNotThrow(() -> Thread.sleep(1500));
+
+        // ensure probe thread has stopped before asserting metrics
+        Assertions.assertDoesNotThrow(() -> probeThread.join(10000L), "probe thread should finish before 10s timeout");
+        final long connects = metricRegistry.counter(MetricRegistry.name(RelpProbe.class, "connects")).getCount();
+        final long retries = metricRegistry.counter(MetricRegistry.name(RelpProbe.class, "retriedConnects")).getCount();
+        Assertions.assertEquals(1, connects, "probe should connect successfully once");
+        // retry attempts count is dependent on timing, assert that there were some retry attempts
+        Assertions.assertTrue(retries > 0, "probe should have retry attempts");
+    }
+
+    /**
+     * Uses custom server and port that simulates connection drop on the first message
+     */
+    @Test
+    public void ensureSentRetryBranchIsCoveredWithStallingTest() {
+        final int isolatedResendPort = 10605;
+        final Map<String, String> map = Assertions
+                .assertDoesNotThrow(() -> new PathConfiguration("src/test/resources/tls-connect.properties").asMap());
+        final ProbeConfiguration probeConfiguration = new ProbeConfiguration(map);
+        // unique signature string to identify test related batches
+        final String uniqueSignature = "Resend-Test-Signature";
+        final RecordFactory recordFactory = new RecordFactory("localhost", uniqueSignature, uniqueSignature);
+        final TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        final MetricsConfiguration metricsConfiguration = new MetricsConfiguration(map);
+        final TLSConfiguration tlsConfiguration = new TLSConfiguration(map);
+        final MetricRegistry metricRegistry = new MetricRegistry();
+
+        final RelpConfig relpConfig = new RelpConfig(
+                targetConfiguration.hostname(),
+                isolatedResendPort,
+                targetConfiguration.reconnectInterval(),
+                5,
+                true,
+                Duration.ofMillis(500),
+                true
+        );
+
+        final SSLContextSupplier sslContextSupplier = new SSLContextSupplierKeystore(
+                tlsConfiguration.keyStorePath(),
+                tlsConfiguration.keyStorePassword(),
+                tlsConfiguration.protocol()
+        );
+        final AtomicInteger logMessageCount = new AtomicInteger(0);
+        final Supplier<FrameDelegate> frameDelegateSupplier = () -> new DefaultFrameDelegate(frameContext -> {
+            final String payload = frameContext.relpFrame().payload().toString();
+
+            // filter our unique test syslog record payloads
+            if (payload != null && payload.contains(uniqueSignature)) {
+                final int currentCount = logMessageCount.incrementAndGet();
+
+                // simulate connection drop on first message
+                if (currentCount == 1) {
+                    throw new RuntimeException("Simulating transient connection drop mid-flight");
+                }
+            }
+        });
+        final Timer shutdownTimer = new Timer("ProbeShutdownTimer");
+        final Server server = Assertions
+                .assertDoesNotThrow(
+                        () -> new ServerFactory(
+                                eventLoop,
+                                threadPoolExecutor,
+                                new TLSFactory(sslContextSupplier.get(), ctx -> {
+                                    SSLEngine engine = ctx.createSSLEngine();
+                                    engine.setUseClientMode(false);
+                                    return engine;
+                                }),
+                                new FrameDelegationClockFactory(frameDelegateSupplier)
+                        ).create(isolatedResendPort)
+                );
+        final RelpConnectionFactory relpConnectionFactory = new RelpConnectionFactory(relpConfig, sslContextSupplier);
+        final RelpProbe relpProbe = new RelpProbe(
+                relpConnectionFactory,
+                targetConfiguration,
+                probeConfiguration,
+                metricsConfiguration,
+                recordFactory,
+                metricRegistry
+        );
+
+        final TimerTask stopTask = new TimerTask() {
+
+            public void run() {
+                relpProbe.stop();
+            }
+        };
+        shutdownTimer.schedule(stopTask, 3000L);
+        final Thread probeThread = new Thread(relpProbe::start);
+        probeThread.start();
+        Assertions.assertDoesNotThrow(() -> probeThread.join(10000L), "probe thread should exit cleanly.");
+        final long resends = metricRegistry.counter(MetricRegistry.name(RelpProbe.class, "resends")).getCount();
+        final long recordsCount = metricRegistry.counter(MetricRegistry.name(RelpProbe.class, "records")).getCount();
+        // ensure at least 1 event, results depend on the timings
+        Assertions.assertTrue(recordsCount > 0, "probe should have processed at least one record");
+        Assertions.assertTrue(resends > 0, "probe should have resend attempts");
+        shutdownTimer.cancel();
+        Assertions.assertDoesNotThrow(server::close);
     }
 }
