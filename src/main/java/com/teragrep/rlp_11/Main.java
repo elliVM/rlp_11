@@ -67,7 +67,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.time.Duration;
 import java.util.Map;
 
 public class Main {
@@ -102,10 +101,10 @@ public class Main {
                 targetConfiguration.hostname(),
                 targetConfiguration.port(),
                 targetConfiguration.reconnectInterval(),
-                5,
-                true,
-                Duration.ofSeconds(10),
-                true
+                targetConfiguration.rebindRequestAmount(),
+                targetConfiguration.isRebindEnabled(),
+                targetConfiguration.maxIdleSeconds(),
+                targetConfiguration.isMaxIdleEnabled()
         );
 
         final RelpConnectionFactory connectionFactory;
