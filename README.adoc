@@ -49,6 +49,18 @@ Example configuration files can be found under link:rpm/src/opt/teragrep/rlp_11/
 |`target.reconnectinterval`
 |RELP Server reconnect interval, in milliseconds
 
+|`target.rebindamount`
+|Number of events/reconnects before triggering a RELP Server connection rebind
+
+|`target.rebind-enabled`
+|Boolean flag to enable or disable RELP Server connection rebinding
+
+|`target.maxidleseconds`
+|RELP Server maximum idle connection duration, in seconds
+
+|`target.maxidle-enabled`
+|Boolean flag to enable or disable the maximum idle connection timeout
+
 |===
 
 === Systemd services
