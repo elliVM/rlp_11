@@ -79,7 +79,8 @@ public final class TargetConfiguration {
         final int port;
         try {
             port = Integer.parseInt(portString);
-        } catch (NumberFormatException e) {
+        }
+        catch (NumberFormatException e) {
             LOGGER.error("Configuration failure: Invalid value for <target.port>: <{}>", e.getMessage());
             throw e;
         }
@@ -103,7 +104,8 @@ public final class TargetConfiguration {
         final int reconnectInterval;
         try {
             reconnectInterval = Integer.parseInt(reconnectIntervalString);
-        } catch (NumberFormatException e) {
+        }
+        catch (NumberFormatException e) {
             LOGGER.error("Configuration failure: Invalid value for <target.reconnectinterval>: <{}>", e.getMessage());
             throw e;
         }
@@ -165,7 +167,8 @@ public final class TargetConfiguration {
         final String value = asStringOrThrow(key);
         try {
             return Integer.parseInt(value);
-        } catch (final NumberFormatException e) {
+        }
+        catch (final NumberFormatException e) {
             LOGGER.error("Configuration failure: Invalid integer value for key <{}>: <{}>", key, e.getMessage());
             throw e;
         }
@@ -175,7 +178,8 @@ public final class TargetConfiguration {
         final String value = asStringOrThrow(key);
         try {
             return Long.parseLong(value);
-        } catch (final NumberFormatException e) {
+        }
+        catch (final NumberFormatException e) {
             LOGGER.error("Configuration failure: Invalid long value for key <{}>: <{}>", key, e.getMessage());
             throw e;
         }
@@ -191,9 +195,11 @@ public final class TargetConfiguration {
         final boolean rv;
         if (o == null) {
             rv = false;
-        } else if (getClass() != o.getClass()) {
+        }
+        else if (getClass() != o.getClass()) {
             rv = false;
-        } else {
+        }
+        else {
             final TargetConfiguration that = (TargetConfiguration) o;
             rv = Objects.equals(config, that.config);
         }
