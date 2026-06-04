@@ -61,14 +61,17 @@ Example configuration files can be found under link:rpm/src/opt/teragrep/rlp_11/
 |`target.maxidle-enabled`
 |Boolean flag to enable or disable the maximum idle connection timeout
 
+|`tls.enabled`
+|Boolean flag to enable or disable TLS, disabled by default
+
 |`tls.keystore.path`
-|TLS path to keystore
+|Path to TLS keystore, defaults to `/opt/teragrep/rlp_11/etc/keystore.p12`
 
 |`tls.keystore.password`
 |TLS keystore password
 
 |`tls.protocol`
-|TLS protocol to be used
+|TLS protocol to be used, defaults to `TLSv1.3`
 
 |===
 

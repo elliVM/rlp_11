@@ -71,12 +71,21 @@ public final class TLSConfigurationTest {
         optionsMap.put("tls.enabled", "true");
         optionsMap.put("tls.keystore.path", "keystore/path");
         optionsMap.put("tls.keystore.password", "testpass");
-        optionsMap.put("tls.protocol", "TLSv1.2");
+        optionsMap.put("tls.protocol", "TLSv1.3");
         final TLSConfiguration tlsConfiguration = new TLSConfiguration(optionsMap);
         Assertions.assertTrue(tlsConfiguration.isTLSEnabled());
         Assertions.assertEquals("keystore/path", tlsConfiguration.keyStorePath());
         Assertions.assertEquals("testpass", tlsConfiguration.keyStorePassword());
-        Assertions.assertEquals("TLSv1.2", tlsConfiguration.protocol());
+        Assertions.assertEquals("TLSv1.3", tlsConfiguration.protocol());
+    }
+
+    @Test
+    public void testDefaults() {
+        final Map<String, String> optionsMap = new HashMap<>();
+        final TLSConfiguration defaultConfig = new TLSConfiguration(optionsMap);
+        Assertions.assertFalse(defaultConfig.isTLSEnabled());
+        Assertions.assertEquals("/opt/teragrep/rlp_11/etc/keystore.p12", defaultConfig.keyStorePath());
+        Assertions.assertEquals("TLSv1.3", defaultConfig.protocol());
     }
 
     @Test
@@ -84,26 +93,12 @@ public final class TLSConfigurationTest {
         final Map<String, String> optionsMap = new HashMap<>();
         final TLSConfiguration tlsConfiguration = new TLSConfiguration(optionsMap);
         Assertions.assertFalse(tlsConfiguration.isTLSEnabled());
-        final ConfigurationException pathException = Assertions
-                .assertThrows(ConfigurationException.class, tlsConfiguration::keyStorePath);
         final ConfigurationException passwordException = Assertions
                 .assertThrows(ConfigurationException.class, tlsConfiguration::keyStorePassword);
-        final ConfigurationException protocolException = Assertions
-                .assertThrows(ConfigurationException.class, tlsConfiguration::protocol);
-        Assertions
-                .assertEquals(
-                        "TLS Configuration did not contain a value for key <tls.keystore.path>",
-                        pathException.getMessage()
-                );
         Assertions
                 .assertEquals(
                         "TLS Configuration did not contain a value for key <tls.keystore.password>",
                         passwordException.getMessage()
-                );
-        Assertions
-                .assertEquals(
-                        "TLS Configuration did not contain a value for key <tls.protocol>",
-                        protocolException.getMessage()
                 );
     }
 

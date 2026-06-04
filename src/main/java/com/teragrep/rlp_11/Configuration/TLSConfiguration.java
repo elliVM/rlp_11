@@ -65,7 +65,7 @@ public final class TLSConfiguration {
     }
 
     public String keyStorePath() {
-        return getOrThrow("tls.keystore.path");
+        return config.getOrDefault("tls.keystore.path", "/opt/teragrep/rlp_11/etc/keystore.p12");
     }
 
     public String keyStorePassword() {
@@ -73,7 +73,7 @@ public final class TLSConfiguration {
     }
 
     public String protocol() {
-        return getOrThrow("tls.protocol");
+        return config.getOrDefault("tls.protocol", "TLSv1.3");
     }
 
     private String getOrThrow(final String key) {
