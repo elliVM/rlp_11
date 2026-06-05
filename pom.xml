@@ -26,7 +26,7 @@
     <prometheus.version>0.16.0</prometheus.version>
     <revision>0.0.1</revision>
     <rlo_14.version>1.0.1</rlo_14.version>
-    <rlp_01.version>4.0.3</rlp_01.version>
+    <rlp_01.version>7.0.0</rlp_01.version>
     <rlp_03.version>8.0.1</rlp_03.version>
     <sha1></sha1>
     <slf4j.version>2.0.16</slf4j.version>
@@ -145,6 +145,13 @@
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-params</artifactId>
       <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- equals verifier for testing -->
+    <dependency>
+      <groupId>nl.jqno.equalsverifier</groupId>
+      <artifactId>equalsverifier</artifactId>
+      <version>3.19.4</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

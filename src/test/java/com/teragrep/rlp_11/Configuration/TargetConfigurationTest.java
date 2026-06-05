@@ -45,9 +45,11 @@
  */
 package com.teragrep.rlp_11.Configuration;
 
+import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -141,11 +143,148 @@ public class TargetConfigurationTest {
         Assertions.assertThrowsExactly(NumberFormatException.class, targetConfiguration::reconnectInterval);
     }
 
+    // "target.rebindamount"
+    @Test
+    public void testValidRebindRequestAmount() {
+        Map<String, String> map = baseConfig();
+        TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        Assertions.assertEquals(5, targetConfiguration.rebindRequestAmount());
+    }
+
+    @Test
+    public void testNullRebindRequestAmount() {
+        Map<String, String> map = baseConfig();
+        map.remove("target.rebindamount");
+        TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        Assertions.assertThrowsExactly(ConfigurationException.class, targetConfiguration::rebindRequestAmount);
+    }
+
+    @Test
+    public void testTooSmallRebindRequestAmount() {
+        Map<String, String> map = baseConfig();
+        map.put("target.rebindamount", "0");
+        TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        Assertions.assertThrowsExactly(ConfigurationException.class, targetConfiguration::rebindRequestAmount);
+    }
+
+    @Test
+    public void testNonNumericRebindRequestAmount() {
+        Map<String, String> map = baseConfig();
+        map.put("target.rebindamount", "not a number");
+        TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        Assertions.assertThrowsExactly(NumberFormatException.class, targetConfiguration::rebindRequestAmount);
+    }
+
+    // target.rebind-enabled
+    @Test
+    public void testTrueRebindEnabled() {
+        Map<String, String> map = baseConfig();
+        TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        Assertions.assertTrue(targetConfiguration::isRebindEnabled);
+    }
+
+    @Test
+    public void testFalseRebindEnabled() {
+        Map<String, String> map = baseConfig();
+        map.put("target.rebind-enabled", "false");
+        TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        Assertions.assertFalse(targetConfiguration::isRebindEnabled);
+    }
+
+    @Test
+    public void testNullRebindEnabled() {
+        Map<String, String> map = baseConfig();
+        map.remove("target.rebind-enabled");
+        TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        Assertions.assertThrowsExactly(ConfigurationException.class, targetConfiguration::isRebindEnabled);
+    }
+
+    @Test
+    public void testInvalidRebindEnabledDefaultsFalse() {
+        Map<String, String> map = baseConfig();
+        map.put("target.rebind-enabled", "non-boolean");
+        TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        Assertions.assertFalse(targetConfiguration::isRebindEnabled);
+    }
+
+    // target.maxidleseconds
+    @Test
+    public void testValidMaxIdleSeconds() {
+        Map<String, String> map = baseConfig();
+        TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        Assertions.assertEquals(Duration.ofSeconds(10), targetConfiguration.maxIdleSeconds());
+    }
+
+    @Test
+    public void testNegativeMaxIdleSeconds() {
+        Map<String, String> map = baseConfig();
+        map.put("target.maxidleseconds", "-15");
+        TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        Assertions.assertThrowsExactly(ConfigurationException.class, targetConfiguration::maxIdleSeconds);
+    }
+
+    @Test
+    public void testNullMaxIdleSeconds() {
+        Map<String, String> map = baseConfig();
+        map.remove("target.maxidleseconds");
+        TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        Assertions.assertThrowsExactly(ConfigurationException.class, targetConfiguration::maxIdleSeconds);
+    }
+
+    @Test
+    public void testNonNumericMaxIdleSeconds() {
+        Map<String, String> map = baseConfig();
+        map.put("target.maxidleseconds", "non-numeric");
+        TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        Assertions.assertThrowsExactly(NumberFormatException.class, targetConfiguration::maxIdleSeconds);
+    }
+
+    // target.maxidle-enabled
+    @Test
+    public void testTrueMaxIdle() {
+        Map<String, String> map = baseConfig();
+        TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        Assertions.assertTrue(targetConfiguration::isMaxIdleEnabled);
+    }
+
+    @Test
+    public void testFalseMaxIdle() {
+        Map<String, String> map = baseConfig();
+        map.put("target.maxidle-enabled", "false");
+        TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        Assertions.assertFalse(targetConfiguration::isMaxIdleEnabled);
+    }
+
+    @Test
+    public void testNullMaxIdle() {
+        Map<String, String> map = baseConfig();
+        map.remove("target.maxidle-enabled");
+        TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        Assertions.assertThrowsExactly(ConfigurationException.class, targetConfiguration::isMaxIdleEnabled);
+    }
+
+    @Test
+    public void testInvalidMaxIdleDefaultsFalse() {
+        Map<String, String> map = baseConfig();
+        map.put("target.maxidle-enabled", "non-boolean");
+        TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        Assertions.assertFalse(targetConfiguration::isMaxIdleEnabled);
+    }
+
+    @Test
+    public void testContract() {
+        EqualsVerifier.forClass(TargetConfiguration.class).withIgnoredFields("LOGGER").verify();
+    }
+
     private Map<String, String> baseConfig() {
         Map<String, String> map = new HashMap<>();
         map.put("target.hostname", "target-hostname");
         map.put("target.port", "601");
         map.put("target.reconnectinterval", "15000");
+        map.put("target.rebindamount", "5");
+        map.put("target.rebind-enabled", "true");
+        map.put("target.maxidleseconds", "10");
+        map.put("target.maxidle-enabled", "true");
         return map;
     }
 }
