@@ -57,11 +57,14 @@ import com.teragrep.rlp_01.client.RelpConfig;
 import com.teragrep.rlp_01.client.RelpConnectionFactory;
 import com.teragrep.rlp_01.client.SSLContextSupplier;
 import com.teragrep.rlp_01.client.SSLContextSupplierKeystore;
+import com.teragrep.rlp_01.client.SocketConfig;
+import com.teragrep.rlp_01.client.SocketConfigImpl;
 import com.teragrep.rlp_03.frame.FrameDelegationClockFactory;
 import com.teragrep.rlp_03.frame.delegate.DefaultFrameDelegate;
 import com.teragrep.rlp_03.frame.delegate.FrameDelegate;
 import com.teragrep.rlp_11.Configuration.ProbeConfiguration;
 import com.teragrep.rlp_11.Configuration.MetricsConfiguration;
+import com.teragrep.rlp_11.Configuration.SocketConfiguration;
 import com.teragrep.rlp_11.Configuration.TLSConfiguration;
 import com.teragrep.rlp_11.Configuration.TargetConfiguration;
 import org.junit.jupiter.api.AfterEach;
@@ -165,6 +168,7 @@ public class ConnectionTest {
         final RecordFactory recordFactory = new RecordFactory("localhost", "rlp_11", "rlp_11");
         final TargetConfiguration targetConfiguration = new TargetConfiguration(map);
         final MetricsConfiguration metricsConfiguration = new MetricsConfiguration(map);
+        final SocketConfiguration socketConfiguration = new SocketConfiguration(map);
 
         final RelpConfig relpConfig = new RelpConfig(
                 targetConfiguration.hostname(),
@@ -175,7 +179,15 @@ public class ConnectionTest {
                 Duration.ofSeconds(10),
                 true
         );
-        final RelpConnectionFactory relpConnectionFactory = new RelpConnectionFactory(relpConfig);
+
+        final SocketConfig socketConfig = new SocketConfigImpl(
+                socketConfiguration.readTimeout(),
+                socketConfiguration.writeTimeout(),
+                socketConfiguration.connectTimeout(),
+                socketConfiguration.keepAlive()
+        );
+
+        final RelpConnectionFactory relpConnectionFactory = new RelpConnectionFactory(relpConfig, socketConfig);
         RelpProbe relpProbe = new RelpProbe(
                 relpConnectionFactory,
                 targetConfiguration,
@@ -207,6 +219,7 @@ public class ConnectionTest {
         final MetricsConfiguration metricsConfiguration = new MetricsConfiguration(map);
         final TLSConfiguration tlsConfiguration = new TLSConfiguration(map);
         final MetricRegistry metricRegistry = new MetricRegistry();
+        final SocketConfiguration socketConfiguration = new SocketConfiguration(map);
 
         final RelpConfig relpConfig = new RelpConfig(
                 targetConfiguration.hostname(),
@@ -217,12 +230,22 @@ public class ConnectionTest {
                 Duration.ofSeconds(10),
                 true
         );
+        final SocketConfig socketConfig = new SocketConfigImpl(
+                socketConfiguration.readTimeout(),
+                socketConfiguration.writeTimeout(),
+                socketConfiguration.connectTimeout(),
+                socketConfiguration.keepAlive()
+        );
         final SSLContextSupplier sslContextSupplier = new SSLContextSupplierKeystore(
                 tlsConfiguration.keyStorePath(),
                 tlsConfiguration.keyStorePassword(),
                 tlsConfiguration.protocol()
         );
-        final RelpConnectionFactory relpConnectionFactory = new RelpConnectionFactory(relpConfig, sslContextSupplier);
+        final RelpConnectionFactory relpConnectionFactory = new RelpConnectionFactory(
+                relpConfig,
+                socketConfig,
+                sslContextSupplier
+        );
         final RelpProbe relpProbe = new RelpProbe(
                 relpConnectionFactory,
                 targetConfiguration,
@@ -271,6 +294,8 @@ public class ConnectionTest {
         final MetricsConfiguration metricsConfiguration = new MetricsConfiguration(map);
         final TLSConfiguration tlsConfiguration = new TLSConfiguration(map);
         final MetricRegistry metricRegistry = new MetricRegistry();
+        final SocketConfiguration socketConfiguration = new SocketConfiguration(map);
+
         // override TLS port
         final RelpConfig relpConfig = new RelpConfig(
                 targetConfiguration.hostname(),
@@ -281,13 +306,23 @@ public class ConnectionTest {
                 Duration.ofSeconds(10),
                 true
         );
+        final SocketConfig socketConfig = new SocketConfigImpl(
+                socketConfiguration.readTimeout(),
+                socketConfiguration.writeTimeout(),
+                socketConfiguration.connectTimeout(),
+                socketConfiguration.keepAlive()
+        );
         // tls enabled factory
         final SSLContextSupplier sslContextSupplier = new SSLContextSupplierKeystore(
                 tlsConfiguration.keyStorePath(),
                 tlsConfiguration.keyStorePassword(),
                 tlsConfiguration.protocol()
         );
-        final RelpConnectionFactory relpConnectionFactory = new RelpConnectionFactory(relpConfig, sslContextSupplier);
+        final RelpConnectionFactory relpConnectionFactory = new RelpConnectionFactory(
+                relpConfig,
+                socketConfig,
+                sslContextSupplier
+        );
         final RelpProbe relpProbe = new RelpProbe(
                 relpConnectionFactory,
                 targetConfiguration,
@@ -362,6 +397,7 @@ public class ConnectionTest {
         final MetricsConfiguration metricsConfiguration = new MetricsConfiguration(map);
         final TLSConfiguration tlsConfiguration = new TLSConfiguration(map);
         final MetricRegistry metricRegistry = new MetricRegistry();
+        final SocketConfiguration socketConfiguration = new SocketConfiguration(map);
 
         final RelpConfig relpConfig = new RelpConfig(
                 targetConfiguration.hostname(),
@@ -371,6 +407,13 @@ public class ConnectionTest {
                 true,
                 Duration.ofMillis(500),
                 true
+        );
+
+        final SocketConfig socketConfig = new SocketConfigImpl(
+                socketConfiguration.readTimeout(),
+                socketConfiguration.writeTimeout(),
+                socketConfiguration.connectTimeout(),
+                socketConfiguration.keepAlive()
         );
 
         final SSLContextSupplier sslContextSupplier = new SSLContextSupplierKeystore(
@@ -406,7 +449,11 @@ public class ConnectionTest {
                                 new FrameDelegationClockFactory(frameDelegateSupplier)
                         ).create(isolatedResendPort)
                 );
-        final RelpConnectionFactory relpConnectionFactory = new RelpConnectionFactory(relpConfig, sslContextSupplier);
+        final RelpConnectionFactory relpConnectionFactory = new RelpConnectionFactory(
+                relpConfig,
+                socketConfig,
+                sslContextSupplier
+        );
         final RelpProbe relpProbe = new RelpProbe(
                 relpConnectionFactory,
                 targetConfiguration,

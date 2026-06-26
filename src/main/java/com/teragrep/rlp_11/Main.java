@@ -51,10 +51,13 @@ import com.teragrep.cnf_01.PathConfiguration;
 import com.teragrep.rlp_01.client.RelpConfig;
 import com.teragrep.rlp_01.client.RelpConnectionFactory;
 import com.teragrep.rlp_01.client.SSLContextSupplierKeystore;
+import com.teragrep.rlp_01.client.SocketConfig;
+import com.teragrep.rlp_01.client.SocketConfigImpl;
 import com.teragrep.rlp_11.Configuration.ProbeConfiguration;
 import com.teragrep.rlp_11.Configuration.RecordConfiguration;
 import com.teragrep.rlp_11.Configuration.MetricsConfiguration;
 import com.teragrep.rlp_11.Configuration.PrometheusConfiguration;
+import com.teragrep.rlp_11.Configuration.SocketConfiguration;
 import com.teragrep.rlp_11.Configuration.TLSConfiguration;
 import com.teragrep.rlp_11.Configuration.TargetConfiguration;
 import com.teragrep.rlp_11.metrics.HttpReport;
@@ -88,6 +91,7 @@ public class Main {
         final PrometheusConfiguration prometheusConfiguration = new PrometheusConfiguration(map);
         final RecordConfiguration recordConfiguration = new RecordConfiguration(map);
         final TargetConfiguration targetConfiguration = new TargetConfiguration(map);
+        final SocketConfiguration socketConfiguration = new SocketConfiguration(map);
         final MetricsConfiguration metricsConfiguration = new MetricsConfiguration(map);
         final TLSConfiguration tlsConfiguration = new TLSConfiguration(map);
 
@@ -107,6 +111,13 @@ public class Main {
                 targetConfiguration.isMaxIdleEnabled()
         );
 
+        final SocketConfig socketConfig = new SocketConfigImpl(
+                socketConfiguration.readTimeout(),
+                socketConfiguration.writeTimeout(),
+                socketConfiguration.connectTimeout(),
+                socketConfiguration.keepAlive()
+        );
+
         final RelpConnectionFactory connectionFactory;
         if (tlsConfiguration.isTLSEnabled()) {
             LOGGER.info("TLS connection enabled");
@@ -115,10 +126,10 @@ public class Main {
                     tlsConfiguration.keyStorePassword(),
                     tlsConfiguration.protocol()
             );
-            connectionFactory = new RelpConnectionFactory(relpConfig, sslContextSupplierKeystore);
+            connectionFactory = new RelpConnectionFactory(relpConfig, socketConfig, sslContextSupplierKeystore);
         }
         else {
-            connectionFactory = new RelpConnectionFactory(relpConfig);
+            connectionFactory = new RelpConnectionFactory(relpConfig, socketConfig);
         }
 
         final ProbeConfiguration probeConfiguration = new ProbeConfiguration(map);
