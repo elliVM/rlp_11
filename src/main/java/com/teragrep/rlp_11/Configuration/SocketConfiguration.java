@@ -66,30 +66,28 @@ public final class SocketConfiguration {
     }
 
     public int readTimeout() {
-        final String socketReadTimeout = config.getOrDefault("socket.readtimeout", "5000");
-        return asInt(socketReadTimeout);
+        return asInt("socket.readtimeout");
     }
 
     public int writeTimeout() {
-        final String socketWriteTimeout = config.getOrDefault("socket.writetimeout", "5000");
-        return asInt(socketWriteTimeout);
+        return asInt("socket.writetimeout");
     }
 
     public int connectTimeout() {
-        final String socketConnectTimeout = config.getOrDefault("socket.connecttimeout", "5000");
-        return asInt(socketConnectTimeout);
+        return asInt("socket.connecttimeout");
     }
 
     public boolean keepAlive() {
         return "true".equalsIgnoreCase(config.getOrDefault("socket.keepalive", "false"));
     }
 
-    private int asInt(final String value) {
+    private int asInt(final String key) {
+        final String value = config.get(key);
         try {
             return Integer.parseInt(value);
         }
         catch (final NumberFormatException e) {
-            LOGGER.error("Configuration failure: Invalid integer value <{}>", value);
+            LOGGER.error("Configuration failure: Invalid integer value <{}> for key <{}>", value, key);
             throw e;
         }
     }

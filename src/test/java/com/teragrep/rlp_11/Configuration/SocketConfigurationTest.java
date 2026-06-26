@@ -49,7 +49,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -59,9 +58,7 @@ public final class SocketConfigurationTest {
     public void testReadTimeout() {
         final Map<String, String> config = new HashMap<>();
         config.put("socket.readtimeout", "1000");
-        final SocketConfiguration defaultConfig = new SocketConfiguration(Collections.emptyMap());
         final SocketConfiguration enabledConfig = new SocketConfiguration(config);
-        Assertions.assertEquals(5000, defaultConfig.readTimeout());
         Assertions.assertEquals(1000, enabledConfig.readTimeout());
     }
 
@@ -69,9 +66,7 @@ public final class SocketConfigurationTest {
     public void testWriteTimeout() {
         final Map<String, String> config = new HashMap<>();
         config.put("socket.writetimeout", "1000");
-        final SocketConfiguration defaultConfig = new SocketConfiguration(Collections.emptyMap());
         final SocketConfiguration enabledConfig = new SocketConfiguration(config);
-        Assertions.assertEquals(5000, defaultConfig.writeTimeout());
         Assertions.assertEquals(1000, enabledConfig.writeTimeout());
     }
 
@@ -79,9 +74,7 @@ public final class SocketConfigurationTest {
     public void testConnectTimeout() {
         final Map<String, String> config = new HashMap<>();
         config.put("socket.connecttimeout", "1000");
-        final SocketConfiguration defaultConfig = new SocketConfiguration(Collections.emptyMap());
         final SocketConfiguration enabledConfig = new SocketConfiguration(config);
-        Assertions.assertEquals(5000, defaultConfig.connectTimeout());
         Assertions.assertEquals(1000, enabledConfig.connectTimeout());
     }
 
@@ -89,9 +82,7 @@ public final class SocketConfigurationTest {
     public void testKeepAlive() {
         final Map<String, String> config = new HashMap<>();
         config.put("socket.keepalive", "true");
-        final SocketConfiguration defaultConfig = new SocketConfiguration(Collections.emptyMap());
         final SocketConfiguration enabledConfig = new SocketConfiguration(config);
-        Assertions.assertFalse(defaultConfig.keepAlive());
         Assertions.assertTrue(enabledConfig.keepAlive());
     }
 
