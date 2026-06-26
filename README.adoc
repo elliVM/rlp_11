@@ -73,6 +73,18 @@ Example configuration files can be found under link:rpm/src/opt/teragrep/rlp_11/
 |`tls.protocol`
 |TLS protocol to be used, defaults to `TLSv1.3`
 
+|`socket.readtimeout`
+|Socket read timeout, default 5000
+
+|`socket.writetimeout`
+|Socket write timeout, default 5000
+
+|`socket.connecttimeout`
+|Socket connect timeout, default 5000
+
+|`socket.keepalive`
+|Boolean flag to keep socket connection alive, default false
+
 |===
 
 === Systemd services
